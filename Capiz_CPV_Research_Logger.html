@@ -1,0 +1,2583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Capiz CPV Research Logger - CapSU</title>
+
+    <!-- iPadOS, iOS & Mobile Web App (PWA) Support -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Capiz CPV">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#14502d">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='40' fill='%2314502d'/%3E%3Ccircle cx='90' cy='72' r='28' fill='none' stroke='%23a7f3d0' stroke-width='10'/%3E%3Cpath d='M55 132h70M90 100v32M66 118h48' stroke='%23ffffff' stroke-width='10' stroke-linecap='round'/%3E%3C/svg%3E">
+
+    <!-- Optional Online Libraries (App works offline even if these are unreachable) -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/peerjs@1.5.1/dist/peerjs.min.js"></script>
+
+    <style>
+        :root {
+            --capsu-green: #14502d;
+            --capsu-green-dark: #0e3a20;
+            --capsu-green-light: #ecfdf5;
+            --capsu-border: #cbd5e1;
+            --bg-page: #f1f5f9;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+        }
+
+        *, *::before, *::after {
+            box-sizing: border-box;
+        }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-page);
+            color: var(--text-main);
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", "Segoe UI", Roboto, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-text-size-adjust: 100%;
+            min-height: 100vh;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+            padding-bottom: env(safe-area-inset-bottom, 24px);
+        }
+
+        /* Quick Look Warning Banner (Automatically hidden by JS when opened in Safari/Browser) */
+        .ql-banner {
+            background: #fef3c7;
+            border-bottom: 2px solid #f59e0b;
+            color: #78350f;
+            padding: 14px 16px;
+            font-size: 13px;
+            line-height: 1.45;
+        }
+        .ql-banner strong {
+            display: block;
+            font-size: 14px;
+            margin-bottom: 4px;
+            color: #92400e;
+        }
+
+        /* Top App Header */
+        .app-header {
+            background: linear-gradient(135deg, #14502d 0%, #0f3f23 100%);
+            color: #ffffff;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            box-shadow: 0 2px 10px rgba(15, 23, 42, 0.15);
+            padding-top: env(safe-area-inset-top, 0px);
+        }
+
+        .header-inner {
+            max-width: 1024px;
+            margin: 0 auto;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .brand-wrap {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .brand-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.16);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+
+        .brand-title {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 700;
+            line-height: 1.2;
+            letter-spacing: -0.01em;
+        }
+
+        .brand-sub {
+            margin: 2px 0 0;
+            font-size: 11px;
+            color: #a7f3d0;
+            opacity: 0.9;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Navigation Tab Bar */
+        .nav-bar {
+            background: #ffffff;
+            border-bottom: 1px solid #e2e8f0;
+            position: sticky;
+            top: 64px;
+            z-index: 40;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .nav-inner {
+            max-width: 1024px;
+            margin: 0 auto;
+            padding: 0 8px;
+            display: flex;
+            min-width: max-content;
+        }
+
+        .tab-btn {
+            flex: 1;
+            appearance: none;
+            background: transparent;
+            border: none;
+            border-bottom: 3px solid transparent;
+            padding: 13px 16px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #64748b;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: all 0.18s ease;
+            touch-action: manipulation;
+        }
+
+        .tab-btn:hover {
+            color: #0f172a;
+        }
+
+        .tab-btn.active {
+            color: #14502d;
+            border-bottom-color: #14502d;
+            font-weight: 700;
+            background: #f8fafc;
+        }
+
+        /* Main Container */
+        .main-wrap {
+            max-width: 1024px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 20px 16px 64px;
+            flex: 1;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.22s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Cards & Sections */
+        .card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 18px;
+            padding: 20px;
+            box-shadow: 0 1px 4px rgba(15, 23, 42, 0.04);
+            margin-bottom: 18px;
+        }
+
+        @media (min-width: 768px) {
+            .card {
+                padding: 26px;
+            }
+        }
+
+        .section-heading {
+            margin: 0 0 4px;
+            font-size: 18px;
+            font-weight: 700;
+            color: #0f172a;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .section-sub {
+            margin: 0 0 18px;
+            font-size: 12px;
+            color: #64748b;
+        }
+
+        .part-title {
+            margin: 24px 0 14px;
+            padding-bottom: 8px;
+            border-bottom: 1.5px solid #e2e8f0;
+            font-size: 12px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: #14502d;
+        }
+
+        .part-title:first-of-type {
+            margin-top: 8px;
+        }
+
+        /* Responsive Grids */
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 14px;
+            margin-bottom: 14px;
+        }
+
+        @media (min-width: 600px) {
+            .grid-2 {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        .grid-4 {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+
+        @media (min-width: 768px) {
+            .grid-4 {
+                grid-template-columns: repeat(4, minmax(0, 1fr));
+            }
+        }
+
+        .analytics-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 16px;
+        }
+
+        @media (min-width: 900px) {
+            .analytics-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+            .col-span-2 {
+                grid-column: span 2;
+            }
+        }
+
+        /* Form Inputs & Labels */
+        .field-label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: #334155;
+            margin-bottom: 6px;
+        }
+
+        .field-hint {
+            margin: 5px 0 0;
+            font-size: 11px;
+            color: #64748b;
+        }
+
+        .form-control {
+            width: 100%;
+            min-height: 46px;
+            padding: 10px 14px;
+            font-size: 16px; /* 16px prevents iPadOS/iOS Safari auto-zoom */
+            font-family: inherit;
+            color: #0f172a;
+            background-color: #f8fafc;
+            border: 1.5px solid #cbd5e1;
+            border-radius: 12px;
+            outline: none;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        .form-control:focus {
+            border-color: #14502d;
+            background-color: #ffffff;
+            box-shadow: 0 0 0 3px rgba(20, 80, 45, 0.14);
+        }
+
+        select.form-control {
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23475569' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.75' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+            background-position: right 12px center;
+            background-repeat: no-repeat;
+            background-size: 18px 18px;
+            padding-right: 38px;
+            cursor: pointer;
+        }
+
+        .input-highlight {
+            background-color: #ecfdf5;
+            border-color: #6ee7b7;
+            color: #064e3b;
+            font-weight: 700;
+        }
+
+        /* Clinical Signs Checkboxes Grid */
+        .symptoms-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+        }
+
+        @media (min-width: 680px) {
+            .symptoms-grid {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+            }
+        }
+
+        .symptom-pill {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: #f8fafc;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 11px 12px;
+            font-size: 13px;
+            font-weight: 500;
+            color: #1e293b;
+            cursor: pointer;
+            user-select: none;
+            transition: all 0.15s ease;
+        }
+
+        .symptom-pill:hover {
+            border-color: #94a3b8;
+        }
+
+        .symptom-pill:has(input:checked) {
+            background: #ecfdf5;
+            border-color: #14502d;
+            color: #064e3b;
+            font-weight: 600;
+        }
+
+        .symptom-pill input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            margin: 0;
+            accent-color: #14502d;
+            flex-shrink: 0;
+            cursor: pointer;
+        }
+
+        .symptom-full {
+            grid-column: 1 / -1;
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            border: none;
+            border-radius: 12px;
+            font-family: inherit;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.1s ease, background-color 0.15s ease;
+            touch-action: manipulation;
+            text-decoration: none;
+        }
+
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        .btn-primary {
+            width: 100%;
+            background-color: #14502d;
+            color: #ffffff;
+            padding: 15px 20px;
+            font-size: 15px;
+            box-shadow: 0 4px 12px rgba(20, 80, 45, 0.22);
+        }
+
+        .btn-primary:hover {
+            background-color: #0f3f23;
+        }
+
+        .btn-amber {
+            width: 100%;
+            background-color: #d97706;
+            color: #ffffff;
+            padding: 15px 20px;
+            font-size: 15px;
+            box-shadow: 0 4px 12px rgba(217, 119, 6, 0.22);
+        }
+
+        .btn-sm {
+            padding: 8px 13px;
+            font-size: 12px;
+            border-radius: 10px;
+        }
+
+        .btn-emerald {
+            background-color: #10b981;
+            color: #ffffff;
+        }
+
+        .btn-emerald:hover {
+            background-color: #059669;
+        }
+
+        .btn-dark {
+            width: 100%;
+            background-color: #1e293b;
+            color: #ffffff;
+            padding: 13px 16px;
+            font-size: 14px;
+        }
+
+        .btn-outline {
+            width: 100%;
+            background-color: #ffffff;
+            color: #334155;
+            border: 1.5px solid #cbd5e1;
+            padding: 12px 16px;
+            font-size: 14px;
+        }
+
+        .btn-soft-green {
+            width: 100%;
+            background-color: #ecfdf5;
+            color: #065f46;
+            border: 1.5px solid #6ee7b7;
+            padding: 12px 16px;
+            font-size: 14px;
+        }
+
+        .btn-danger {
+            width: 100%;
+            background-color: #fef2f2;
+            color: #dc2626;
+            border: 1.5px solid #fecaca;
+            padding: 12px 16px;
+            font-size: 14px;
+        }
+
+        /* Edit Banner */
+        .edit-banner {
+            background: #fffbeb;
+            border: 1.5px solid #fcd34d;
+            color: #78350f;
+            padding: 12px 14px;
+            border-radius: 12px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        /* KPI Stat Cards */
+        .stat-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 16px;
+            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
+        }
+
+        .stat-label {
+            margin: 0;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: #64748b;
+        }
+
+        .stat-val {
+            margin: 6px 0 0;
+            font-size: 28px;
+            font-weight: 800;
+            line-height: 1.1;
+            color: #0f172a;
+        }
+
+        .text-blue { color: #2563eb; }
+        .text-red { color: #dc2626; }
+        .text-slate { color: #475569; }
+
+        /* Filter Toolbar */
+        .toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .filter-pill-bar {
+            display: inline-flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 6px;
+            background: #ffffff;
+            border: 1px solid #cbd5e1;
+            border-radius: 12px;
+            padding: 6px 12px;
+        }
+
+        .filter-pill-bar select {
+            border: none;
+            background: transparent;
+            font-size: 13px;
+            font-weight: 700;
+            color: #14502d;
+            padding: 4px 6px;
+            outline: none;
+            cursor: pointer;
+        }
+
+        /* Tables */
+        .table-wrap {
+            width: 100%;
+            overflow-x: auto;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            background: #ffffff;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 12px;
+        }
+
+        th {
+            background: #f8fafc;
+            color: #475569;
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 11px;
+            padding: 10px 12px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #f1f5f9;
+            vertical-align: top;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        .tally-group-title {
+            display: inline-block;
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+            color: #14502d;
+            background: #ecfdf5;
+            padding: 4px 10px;
+            border-radius: 6px;
+            margin: 0 0 8px;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        .badge-pos { background: #fef2f2; color: #dc2626; }
+        .badge-neg { background: #f1f5f9; color: #475569; }
+        .badge-surv { background: #dbeafe; color: #1d4ed8; }
+        .badge-mort { background: #fee2e2; color: #b91c1c; }
+        .badge-unavail { background: #f1f5f9; color: #475569; }
+
+        .sym-tag {
+            display: inline-block;
+            background: #f1f5f9;
+            border: 1px solid #e2e8f0;
+            color: #475569;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 5px;
+            margin: 0 4px 4px 0;
+            white-space: nowrap;
+        }
+
+        /* Chart Box */
+        .chart-box {
+            position: relative;
+            width: 100%;
+            height: 250px;
+        }
+
+        /* Modals */
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.72);
+            backdrop-filter: blur(3px);
+            z-index: 100;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+
+        .modal-backdrop.open {
+            display: flex;
+        }
+
+        .modal-card {
+            background: #ffffff;
+            border-radius: 18px;
+            max-width: 520px;
+            width: 100%;
+            padding: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+        }
+
+        .modal-textarea {
+            width: 100%;
+            height: 190px;
+            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+            font-size: 11px;
+            padding: 12px;
+            background: #f8fafc;
+            border: 1.5px solid #cbd5e1;
+            border-radius: 12px;
+            margin: 10px 0 14px;
+            outline: none;
+        }
+
+        /* Toast */
+        .toast-pill {
+            position: fixed;
+            top: 76px;
+            left: 50%;
+            transform: translate(-50%, -20px);
+            background: rgba(15, 23, 42, 0.95);
+            color: #ffffff;
+            padding: 10px 18px;
+            border-radius: 999px;
+            font-size: 13px;
+            font-weight: 600;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            z-index: 120;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.25s ease;
+            white-space: nowrap;
+        }
+
+        .toast-pill.show {
+            opacity: 1;
+            transform: translate(-50%, 0);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .stack-sm > * + * {
+            margin-top: 10px;
+        }
+
+        .guide-box {
+            background: #eff6ff;
+            border: 1.5px solid #bfdbfe;
+            border-radius: 14px;
+            padding: 16px;
+            color: #1e3a8a;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+        .guide-box ol {
+            margin: 8px 0 0;
+            padding-left: 20px;
+        }
+        .guide-box li {
+            margin-bottom: 6px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Visible ONLY if opened inside Apple Files Quick Look (which blocks JavaScript) -->
+    <div id="quicklook-warning" class="ql-banner">
+        <strong>⚠️ iPad Quick Look Preview Detected (Buttons &amp; Saving Disabled by Apple Files)</strong>
+        Apple's built-in file viewer blocks interactive apps. To install this as a 100% FREE full-screen App on your iPad/Phone:
+        <br>1. Open <b>Safari</b> (or Chrome) and go to <b>app.netlify.com/drop</b> or <b>tiiny.host</b> (both 100% free).
+        <br>2. Upload this <code>.html</code> file to get your free private website link.
+        <br>3. Open that link in Safari &rarr; tap <b>Share (&uarr;)</b> &rarr; tap <b>Add to Home Screen</b>!
+    </div>
+
+    <header class="app-header">
+        <div class="header-inner">
+            <div class="brand-wrap">
+                <div class="brand-icon" aria-hidden="true">🔬</div>
+                <div>
+                    <h1 class="brand-title">Capiz CPV Thesis Logger</h1>
+                    <p class="brand-sub">Faith B. Garfin &bull; CapSU DVM</p>
+                </div>
+            </div>
+            <div class="header-actions">
+                <button type="button" onclick="switchTab('settings')" class="btn btn-sm" style="background: rgba(255,255,255,0.16); color: #fff;">
+                    📲 Free Install
+                </button>
+                <button type="button" onclick="exportToExcel()" class="btn btn-sm btn-emerald">
+                    📊 <span id="header-export-label">Export XLSX</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <nav class="nav-bar">
+        <div class="nav-inner">
+            <button type="button" onclick="switchTab('entry')" id="tab-entry" class="tab-btn active">
+                ✏️ Log Case
+            </button>
+            <button type="button" onclick="switchTab('tally')" id="tab-tally" class="tab-btn">
+                📈 Analytics (<span id="total-pos-badge">0</span> Pos)
+            </button>
+            <button type="button" onclick="switchTab('registry')" id="tab-registry" class="tab-btn">
+                🗂️ Database (<span id="case-count-badge">0</span>)
+            </button>
+            <button type="button" onclick="switchTab('settings')" id="tab-settings" class="tab-btn">
+                ☁️ Sync, Backup &amp; Free App Install
+            </button>
+        </div>
+    </nav>
+
+    <main class="main-wrap">
+
+        <!-- TAB 1: LOG CASE -->
+        <section id="sec-entry" class="tab-content active">
+            <div class="card">
+                <h2 class="section-heading">🩺 New Patient Record (Capiz)</h2>
+                <p class="section-sub">Extract clinical and signalment parameters directly from clinic logs.</p>
+
+                <form id="cpvForm" onsubmit="handleFormSubmit(event)">
+                    <div id="edit-banner" class="edit-banner hidden">
+                        <span id="edit-banner-text">Editing Case Record</span>
+                        <button type="button" onclick="cancelEdit()" class="btn btn-sm" style="background:#fde68a; color:#78350f;">Cancel Edit</button>
+                    </div>
+
+                    <h3 class="part-title">I. Signalment &amp; History</h3>
+
+                    <div class="grid-2">
+                        <div>
+                            <label class="field-label" for="clinicCode">Assigned Clinic Code *</label>
+                            <select id="clinicCode" required onchange="autoGenerateId()" class="form-control">
+                                <option value="" disabled selected>Select Code (Anonymity)</option>
+                                <option value="Clinic A">Clinic A</option>
+                                <option value="Clinic B">Clinic B</option>
+                                <option value="Clinic C">Clinic C</option>
+                                <option value="Clinic D">Clinic D</option>
+                                <option value="Clinic E">Clinic E</option>
+                                <option value="Clinic F">Clinic F</option>
+                                <option value="Clinic G">Clinic G</option>
+                                <option value="Clinic H">Clinic H</option>
+                                <option value="Clinic I">Clinic I</option>
+                                <option value="Clinic J">Clinic J</option>
+                                <option value="Clinic K">Clinic K</option>
+                                <option value="Clinic L">Clinic L</option>
+                                <option value="Clinic M">Clinic M</option>
+                                <option value="Clinic N">Clinic N</option>
+                                <option value="Clinic O">Clinic O</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="field-label" for="caseId">Case Name / Record No. *</label>
+                            <input type="text" id="caseId" required onkeydown="if(event.key==='Enter') event.preventDefault();" placeholder="Select clinic or type case name..." class="form-control input-highlight">
+                            <p class="field-hint">Auto-generates per clinic, or type freely to edit case name.</p>
+                        </div>
+                    </div>
+
+                    <div class="grid-2">
+                        <div>
+                            <label class="field-label" for="admissionDate">Date of Admission *</label>
+                            <input type="date" id="admissionDate" required onchange="autoSetSeason()" class="form-control">
+                        </div>
+                        <div>
+                            <label class="field-label" for="season">Season (Auto-detected)</label>
+                            <select id="season" class="form-control">
+                                <option value="Wet (June-Nov)">Wet (June-Nov)</option>
+                                <option value="Dry (Dec-May)">Dry (Dec-May)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="grid-2">
+                        <div>
+                            <label class="field-label" for="ageCategory">Age Bracket *</label>
+                            <select id="ageCategory" required class="form-control">
+                                <option value="<3 months">Neonatal (&lt;3 months)</option>
+                                <option value="3-12 months">Juvenile (3-12 months)</option>
+                                <option value=">1-3 years">Adult (&gt;1-3 years)</option>
+                                <option value=">3-5 years">Mature Adult (&gt;3-5 years)</option>
+                                <option value=">5 years">Senior (&gt;5 years)</option>
+                                <option value="Not Recorded">Not Recorded</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="field-label" for="sex">Sex *</label>
+                            <select id="sex" required class="form-control">
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                                <option value="Not Recorded">Not Recorded</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="grid-2">
+                        <div>
+                            <label class="field-label" for="breedCategory">Breed Classification *</label>
+                            <select id="breedCategory" required onchange="toggleBreedSpecify()" class="form-control">
+                                <option value="" disabled selected>Select Category *</option>
+                                <option value="Purebred">Purebred</option>
+                                <option value="Mixed/Aspin">Mixed Breed / Aspin</option>
+                                <option value="Not Recorded">Not Recorded</option>
+                            </select>
+                            <input type="text" id="breedSpecify" onkeydown="if(event.key==='Enter') event.preventDefault();" placeholder="Specify breed (e.g. Shih Tzu)" class="form-control" style="display:none; margin-top:8px;">
+                        </div>
+                        <div>
+                            <label class="field-label" for="vaccinationStatus">Primary Vaccination *</label>
+                            <select id="vaccinationStatus" required class="form-control">
+                                <option value="Fully Vaccinated">Fully Vaccinated</option>
+                                <option value="Partially Vaccinated">Partially Vaccinated</option>
+                                <option value="Unvaccinated">Unvaccinated</option>
+                                <option value="Unknown/Unrecorded">Unknown / Unrecorded</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <h3 class="part-title">II. Clinical Manifestations</h3>
+
+                    <div class="symptoms-grid">
+                        <label class="symptom-pill"><input type="checkbox" id="sign_lethargy"><span>Lethargy</span></label>
+                        <label class="symptom-pill"><input type="checkbox" id="sign_vomiting"><span>Vomiting</span></label>
+                        <label class="symptom-pill"><input type="checkbox" id="sign_diarrhea"><span>Diarrhea (Non-hem)</span></label>
+                        <label class="symptom-pill"><input type="checkbox" id="sign_bloody"><span>Hem. Enteritis (Bloody)</span></label>
+                        <label class="symptom-pill"><input type="checkbox" id="sign_inappetence"><span>Inappetence</span></label>
+                        <label class="symptom-pill"><input type="checkbox" id="sign_anorexia"><span>Anorexia</span></label>
+                        <label class="symptom-pill"><input type="checkbox" id="sign_dehydration"><span>Dehydration</span></label>
+                        <label class="symptom-pill"><input type="checkbox" id="sign_melena"><span>Melena</span></label>
+                        <label class="symptom-pill"><input type="checkbox" id="sign_fever"><span>Fever</span></label>
+                        <label class="symptom-pill"><input type="checkbox" id="sign_pale"><span>Pallor (Pale Mucosa)</span></label>
+                        <label class="symptom-pill"><input type="checkbox" id="sign_abdominal_pain"><span>Abdominal Pain</span></label>
+                        <label class="symptom-pill"><input type="checkbox" id="sign_not_recorded"><span>Not Recorded</span></label>
+
+                        <div class="symptom-full">
+                            <label class="symptom-pill">
+                                <input type="checkbox" id="sign_other" onchange="toggleOtherSign()">
+                                <span>Other (Specify manually)</span>
+                            </label>
+                            <input type="text" id="otherSignText" onkeydown="if(event.key==='Enter') event.preventDefault();" placeholder="E.g., Hypoxia, Seizures, Jaundice" class="form-control hidden" style="margin-top:8px;">
+                            <p id="otherSignHint" class="field-hint hidden">Tip: Separate multiple custom signs with commas (e.g., <i>Seizures, Jaundice</i>).</p>
+                        </div>
+                    </div>
+
+                    <h3 class="part-title">III. Diagnosis &amp; Outcome</h3>
+
+                    <div class="grid-2">
+                        <div>
+                            <label class="field-label" for="cpvResult">CPV Confirmation *</label>
+                            <select id="cpvResult" required class="form-control input-highlight">
+                                <option value="Positive">POSITIVE (Include)</option>
+                                <option value="Negative">NEGATIVE (Exclude)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="field-label" for="terminalOutcome">Terminal Outcome *</label>
+                            <select id="terminalOutcome" required class="form-control" style="font-weight:700;">
+                                <option value="Survived">Survived / Recovered</option>
+                                <option value="Mortality">Mortality / Deceased</option>
+                                <option value="Unavailable">Outcome Unavailable / Not Recorded</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom: 20px;">
+                        <label class="field-label" for="diagnosticTest">Diagnostic Test Used *</label>
+                        <select id="diagnosticTest" required class="form-control">
+                            <option value="ICGA Rapid Kit">ICGA Rapid Kit (Antigen)</option>
+                            <option value="PCR">PCR</option>
+                            <option value="Both">Both (ICGA &amp; PCR)</option>
+                            <option value="Not Recorded">Not Recorded</option>
+                        </select>
+                    </div>
+
+                    <button type="submit" id="submitBtn" class="btn btn-primary">
+                        <span id="submitBtnIcon">💾</span> <span id="submitBtnText">Save Case to Database</span>
+                    </button>
+                </form>
+            </div>
+        </section>
+
+        <!-- TAB 2: ANALYTICS -->
+        <section id="sec-tally" class="tab-content">
+            <div class="toolbar">
+                <div>
+                    <h2 class="section-heading">📊 Analytics Dashboard</h2>
+                    <p id="analytics-scope-subtitle" class="field-hint" style="margin:0;">Showing all clinics combined</p>
+                </div>
+                <div class="filter-pill-bar">
+                    <span>🏥</span>
+                    <select id="clinicFilter" onchange="syncClinicFilters(this.value)">
+                        <option value="All">All Clinics</option>
+                    </select>
+                    <span style="color:#cbd5e1;">|</span>
+                    <span>📅</span>
+                    <select id="yearFilter" onchange="updateAnalyticsViews()">
+                        <option value="All">All Years</option>
+                        <option value="2022">2022</option>
+                        <option value="2023">2023</option>
+                        <option value="2024">2024</option>
+                        <option value="2025">2025</option>
+                        <option value="2026">2026</option>
+                    </select>
+                    <span style="color:#cbd5e1;">|</span>
+                    <select id="monthFilter" onchange="updateAnalyticsViews()">
+                        <option value="All">All Months</option>
+                        <option value="01">Jan</option>
+                        <option value="02">Feb</option>
+                        <option value="03">Mar</option>
+                        <option value="04">Apr</option>
+                        <option value="05">May</option>
+                        <option value="06">Jun</option>
+                        <option value="07">Jul</option>
+                        <option value="08">Aug</option>
+                        <option value="09">Sep</option>
+                        <option value="10">Oct</option>
+                        <option value="11">Nov</option>
+                        <option value="12">Dec</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="grid-4">
+                <div class="stat-card">
+                    <p class="stat-label">Total Positives</p>
+                    <p class="stat-val" id="stat-pos-count">0</p>
+                </div>
+                <div class="stat-card">
+                    <p class="stat-label">Total Logged</p>
+                    <p class="stat-val text-slate" id="stat-total-cases">0</p>
+                </div>
+                <div class="stat-card">
+                    <p class="stat-label">Survival Rate</p>
+                    <p class="stat-val text-blue" id="stat-survival-rate">0%</p>
+                </div>
+                <div class="stat-card">
+                    <p class="stat-label">Mortality Rate</p>
+                    <p class="stat-val text-red" id="stat-mortality-rate">0%</p>
+                </div>
+            </div>
+
+            <div class="analytics-grid">
+                <div class="card" style="margin-bottom:0;">
+                    <h3 class="section-heading" style="font-size:15px; border-bottom:1px solid #e2e8f0; padding-bottom:10px; margin-bottom:14px;">
+                        🐾 Demographic Profile (CPV+)
+                    </h3>
+                    <div id="demographic-tables"></div>
+                </div>
+
+                <div class="stack-sm">
+                    <div class="card" style="margin-bottom:0;">
+                        <h3 class="section-heading" style="font-size:15px; border-bottom:1px solid #e2e8f0; padding-bottom:10px; margin-bottom:12px;">
+                            📋 Clinical Manifestations (CPV+)
+                        </h3>
+                        <div class="table-wrap">
+                            <table>
+                                <thead>
+                                    <tr><th>Sign Observed</th><th style="text-align:right;">Freq (n)</th><th style="text-align:right;">Pct (%)</th></tr>
+                                </thead>
+                                <tbody id="tally-symptoms-body"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="card" style="margin-bottom:0;">
+                        <h3 class="section-heading" style="font-size:15px; border-bottom:1px solid #e2e8f0; padding-bottom:10px; margin-bottom:12px;">
+                            💉 Vacc. vs Outcome (CPV+)
+                        </h3>
+                        <div class="table-wrap">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Status</th>
+                                        <th style="text-align:center; background:#eff6ff; color:#1d4ed8;">Surv.</th>
+                                        <th style="text-align:center; background:#fef2f2; color:#b91c1c;">Mort.</th>
+                                        <th style="text-align:right;">Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="crosstab-body"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card col-span-2" style="margin-bottom:0;">
+                    <h3 class="section-heading" style="font-size:15px; border-bottom:1px solid #e2e8f0; padding-bottom:10px; margin-bottom:14px;">
+                        📈 Monthly Case Trend (Positives)
+                    </h3>
+                    <div class="chart-box">
+                        <canvas id="monthlyTrendChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="card col-span-2" style="margin-bottom:0;">
+                    <h3 class="section-heading" style="font-size:15px; border-bottom:1px solid #e2e8f0; padding-bottom:10px; margin-bottom:14px;">
+                        ❤️ Survival vs. Mortality Trend
+                    </h3>
+                    <div class="chart-box">
+                        <canvas id="outcomeTrendChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 3: DATABASE -->
+        <section id="sec-registry" class="tab-content">
+            <div class="card">
+                <div class="toolbar">
+                    <div>
+                        <h2 class="section-heading">🗂️ Master Data Ledger</h2>
+                        <p id="registry-filter-summary" class="field-hint" style="color:#14502d; font-weight:700; margin:0;">Showing 0 of 0 records</p>
+                    </div>
+                    <div style="display:flex; flex-wrap:wrap; gap:8px; width:100%; max-width:560px;">
+                        <select id="registryClinicFilter" onchange="syncClinicFilters(this.value)" class="form-control" style="flex:1; min-width:130px; min-height:40px; font-size:13px; font-weight:700; color:#14502d;">
+                            <option value="All">All Clinics</option>
+                        </select>
+                        <input type="text" id="searchInput" oninput="filterRegistry()" placeholder="Search ID, Breed, Clinic..." class="form-control" style="flex:2; min-width:170px; min-height:40px; font-size:13px;">
+                        <button type="button" onclick="exportToExcel()" class="btn btn-sm btn-emerald" style="min-height:40px;">
+                            📊 <span id="registry-export-label">Export XLSX</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="table-wrap">
+                    <table style="min-width:680px;">
+                        <thead>
+                            <tr>
+                                <th>Case Name / ID</th>
+                                <th>Age / Breed</th>
+                                <th>Vaccination</th>
+                                <th style="width:190px;">Symptoms</th>
+                                <th style="text-align:center;">Result</th>
+                                <th style="text-align:center;">Outcome</th>
+                                <th style="text-align:center;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="registry-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 4: SYNC, BACKUP & FREE HOME SCREEN APP INSTALL -->
+        <section id="sec-settings" class="tab-content">
+            <div class="card" style="max-width:560px; margin:0 auto 18px; border-top:4px solid #14502d;">
+                <h2 class="section-heading">📲 100% Free iPad / Phone App Setup (Zero Cost)</h2>
+                <p class="section-sub">No App Store fees or paid subscriptions needed. Host this single HTML file once for free so your browser can install it directly on your Home Screen and work offline:</p>
+                <div class="guide-box">
+                    <strong>Option A — Instant Free Drop (No Account Needed):</strong>
+                    <ol>
+                        <li>Open <b>Safari</b> (iPad/iPhone) or <b>Chrome</b> (Android) and visit <b>app.netlify.com/drop</b> or <b>tiiny.host</b>.</li>
+                        <li>Drag &amp; drop (or upload) your <code>capiz_cpv_data_tallying_tool (8).html</code> file to get your free link.</li>
+                        <li>Open that link &rarr; tap <b>Share (&uarr;)</b> (or <b>&#8942; Menu</b> on Android) &rarr; tap <b>"Add to Home Screen"</b>!</li>
+                    </ol>
+                    <div style="margin-top:10px; padding-top:10px; border-top:1px solid #bfdbfe;">
+                        <strong>Option B — Permanent Free Forever Link (GitHub Pages):</strong>
+                        <br>Rename the file to <code>index.html</code>, upload it to a free <b>GitHub.com</b> repository, and turn on <b>Settings &rarr; Pages</b>. It stays online 100% free forever with zero expiration!
+                    </div>
+                </div>
+            </div>
+
+            <div class="card" style="max-width:560px; margin:0 auto 18px; border-top:4px solid #2563eb;">
+                <h2 class="section-heading">📡 Live Partner &amp; Adviser Sync</h2>
+                <p class="section-sub">Share live progress with your adviser or log cases simultaneously with a partner.</p>
+
+                <div id="peer-loading" style="font-size:12px; text-align:center; color:#92400e; background:#fef3c7; padding:10px; border-radius:10px;">
+                    Generating secure Sync ID...
+                </div>
+
+                <div id="peer-online-ui" class="hidden stack-sm">
+                    <div style="background:#f8fafc; padding:12px; border-radius:12px; border:1px solid #e2e8f0; text-align:center;">
+                        <p class="stat-label">Your Device's Live Sync ID</p>
+                        <p id="peer-id-display" style="font-family:monospace; font-size:13px; font-weight:700; margin:6px 0; word-break:break-all; user-select:all;"></p>
+                        <button type="button" onclick="copyPeerId()" class="btn btn-sm btn-soft-green" style="width:auto;">
+                            📋 Copy Sync ID
+                        </button>
+                    </div>
+
+                    <div>
+                        <label class="field-label" for="partner-code">Connect to Host Sync ID</label>
+                        <div style="display:flex; gap:8px;">
+                            <input type="text" id="partner-code" placeholder="Paste Host Sync ID" class="form-control" style="min-height:42px; font-size:14px;">
+                            <button type="button" onclick="connectToPartner()" class="btn btn-sm" style="background:#2563eb; color:#fff; padding:0 16px;">Connect</button>
+                        </div>
+                        <p id="peer-status" style="font-size:12px; color:#059669; font-weight:700; text-align:center; margin-top:8px;"></p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card" style="max-width:560px; margin:0 auto; border-top:4px solid #10b981;">
+                <h2 class="section-heading">💾 Smart Data Backup &amp; Merge</h2>
+                <p class="section-sub">Log offline, export JSON backups, or merge partner datasets safely.</p>
+
+                <div class="stack-sm">
+                    <button type="button" onclick="downloadBackup()" class="btn btn-dark">
+                        ⬇️ Download Backup (.json)
+                    </button>
+
+                    <button type="button" onclick="copyDataTextModal()" class="btn" style="width:100%; background:#d97706; color:#fff; padding:13px 16px; font-size:14px;">
+                        📋 Copy Backup Text (Fallback)
+                    </button>
+
+                    <input type="file" id="importFile" accept="*/*" onchange="restoreBackup(event)" class="hidden">
+                    <button type="button" onclick="document.getElementById('importFile').click()" class="btn btn-outline">
+                        📂 Upload &amp; Merge JSON File
+                    </button>
+
+                    <button type="button" onclick="openPasteMergeModal()" class="btn btn-soft-green">
+                        📥 Paste &amp; Merge JSON Text (iPad Easy)
+                    </button>
+
+                    <hr style="border:none; border-top:1px solid #e2e8f0; margin:14px 0;">
+
+                    <button type="button" onclick="promptClearAllData()" class="btn btn-danger">
+                        🗑️ Danger: Clear All Local Data
+                    </button>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Custom Confirm Modal (No browser alert/confirm used) -->
+    <div id="confirm-modal" class="modal-backdrop">
+        <div class="modal-card" style="max-width:400px;">
+            <h3 id="confirm-title" style="margin:0 0 8px; font-size:16px; font-weight:700; color:#0f172a;">Confirm Action</h3>
+            <p id="confirm-msg" style="font-size:13px; color:#475569; margin:0 0 18px; line-height:1.45;"></p>
+            <div style="display:flex; gap:8px;">
+                <button type="button" id="confirm-yes-btn" class="btn" style="flex:1; background:#dc2626; color:#fff; padding:11px;">Confirm</button>
+                <button type="button" onclick="closeConfirmModal()" class="btn btn-outline" style="flex:1; padding:11px;">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Fallback / Paste Modal -->
+    <div id="fallback-modal" class="modal-backdrop">
+        <div class="modal-card">
+            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e2e8f0; padding-bottom:10px;">
+                <h3 id="modal-title" style="margin:0; font-size:15px; font-weight:700;">Data Copy Box</h3>
+                <button type="button" onclick="closeFallbackModal()" style="background:none; border:none; font-size:22px; cursor:pointer; color:#64748b;">&times;</button>
+            </div>
+            <p id="modal-desc" style="font-size:12px; color:#64748b; margin:10px 0 0;">Copy the raw JSON text below:</p>
+            <textarea id="modal-textarea" class="modal-textarea"></textarea>
+            <div style="display:flex; gap:8px;">
+                <button type="button" onclick="copyModalText()" id="btn-modal-copy" class="btn btn-primary" style="padding:11px;">
+                    📋 Copy to Clipboard
+                </button>
+                <button type="button" onclick="executePastedMerge()" id="btn-modal-merge" class="btn btn-emerald hidden" style="flex:1; padding:11px;">
+                    🔀 Merge Data Now
+                </button>
+                <button type="button" onclick="closeFallbackModal()" class="btn btn-outline" style="width:auto; padding:11px 16px;">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast-pill">
+        <span id="toast-icon">✅</span> <span id="toast-msg">Action completed.</span>
+    </div>
+
+    <script>
+        // Immediately hide Quick Look warning since JavaScript is actively running
+        (function() {
+            var ql = document.getElementById('quicklook-warning');
+            if (ql) ql.style.display = 'none';
+
+            // Register dynamic Web App Manifest for iPadOS / Android / Chrome Home Screen installation
+            try {
+                var manifest = {
+                    name: "Capiz CPV Thesis Logger",
+                    short_name: "Capiz CPV",
+                    start_url: ".",
+                    display: "standalone",
+                    background_color: "#f1f5f9",
+                    theme_color: "#14502d",
+                    icons: [{
+                        src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='112' fill='%2314502d'/%3E%3Ccircle cx='256' cy='205' r='80' fill='none' stroke='%23a7f3d0' stroke-width='28'/%3E%3Cpath d='M156 376h200M256 285v91M188 336h136' stroke='%23ffffff' stroke-width='28' stroke-linecap='round'/%3E%3C/svg%3E",
+                        sizes: "512x512",
+                        type: "image/svg+xml"
+                    }]
+                };
+                var blob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
+                var link = document.createElement('link');
+                link.rel = 'manifest';
+                link.href = URL.createObjectURL(blob);
+                document.head.appendChild(link);
+            } catch (e) {}
+        })();
+
+        var cases = [];
+        var trendChart = null;
+        var outcomeChart = null;
+        var peer = null;
+        var connections = [];
+        var editingInternalId = null;
+
+        const DEFAULT_CLINICS = [
+            'Clinic A', 'Clinic B', 'Clinic C', 'Clinic D', 'Clinic E',
+            'Clinic F', 'Clinic G', 'Clinic H', 'Clinic I', 'Clinic J',
+            'Clinic K', 'Clinic L', 'Clinic M', 'Clinic N', 'Clinic O'
+        ];
+
+        function escapeHtml(str) {
+            if (str === null || str === undefined) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        // Simulated multi-clinic dataset for Capiz (Clinic A: 81 cases, Clinic C: 39 cases; 2023-2025 Jan-Dec)
+        function buildCapizDataset() {
+            const clinics = [
+                {
+                    code: "Clinic A",
+                    prefix: "A",
+                    monthlyPattern: [2, 2, 2, 2, 2, 3, 3, 3, 3, 2, 2, 1] // 27/yr * 3 yrs = 81 cases
+                },
+                {
+                    code: "Clinic C",
+                    prefix: "C",
+                    monthlyPattern: [1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1] // 13/yr * 3 yrs = 39 cases
+                }
+            ];
+
+            const purebreds = ["Shih Tzu", "Pomeranian", "Siberian Husky", "Golden Retriever", "Dachshund", "Beagle", "Pug", "Labrador Retriever", "Chihuahua"];
+            const years = ["2023", "2024", "2025"];
+            const records = [];
+            let globalIdx = 1;
+
+            clinics.forEach(clinicObj => {
+                let clinicSeq = 1;
+                years.forEach((year, yIdx) => {
+                    clinicObj.monthlyPattern.forEach((countInMonth, mIdx) => {
+                        const monthStr = String(mIdx + 1).padStart(2, '0');
+                        const isWet = (mIdx + 1) >= 6 && (mIdx + 1) <= 11;
+                        const seasonStr = isWet ? "Wet (June-Nov)" : "Dry (Dec-May)";
+
+                        for (let k = 0; k < countInMonth; k++) {
+                            const seed = globalIdx * 19 + clinicSeq * 7 + yIdx * 3;
+                            const dayNum = Math.min(28, 4 + k * 9 + ((seed * 5) % 6));
+                            const dayStr = String(dayNum).padStart(2, '0');
+                            const dateStr = `${year}-${monthStr}-${dayStr}`;
+
+                            let age = "3-12 months";
+                            const ageMod = seed % 20;
+                            if (ageMod < 6) age = "<3 months";
+                            else if (ageMod < 17) age = "3-12 months";
+                            else if (ageMod < 19) age = ">1-3 years";
+                            else age = "Not Recorded";
+
+                            const sex = (seed % 19 === 0) ? "Not Recorded" : ((seed % 2 === 0) ? "Male" : "Female");
+
+                            let breed = "Mixed/Aspin";
+                            let breedSpecify = "";
+                            let breedDetail = "Mixed/Aspin";
+                            const breedMod = seed % 12;
+                            if (breedMod < 6) {
+                                breed = "Purebred";
+                                breedSpecify = purebreds[seed % purebreds.length];
+                                breedDetail = `Purebred (${breedSpecify})`;
+                            } else if (breedMod === 11) {
+                                breed = "Not Recorded";
+                                breedDetail = "Not Recorded";
+                            }
+
+                            let vaccination = "Unvaccinated";
+                            const vacMod = seed % 14;
+                            if (vacMod < 7) vaccination = "Unvaccinated";
+                            else if (vacMod < 11) vaccination = "Partially Vaccinated";
+                            else if (vacMod < 13) vaccination = "Unknown/Unrecorded";
+                            else vaccination = "Fully Vaccinated";
+
+                            const symptoms = ["Lethargy", "Vomiting"];
+                            if (seed % 5 !== 0) symptoms.push("Hem. Enteritis (Bloody)");
+                            else symptoms.push("Diarrhea (Non-hem)");
+                            if (seed % 4 !== 0) symptoms.push("Inappetence");
+                            else symptoms.push("Anorexia");
+                            if (seed % 5 !== 1) symptoms.push("Dehydration");
+                            if (seed % 4 === 0) symptoms.push("Fever");
+                            if (seed % 6 === 0) symptoms.push("Melena");
+                            if (age === "<3 months" && seed % 2 === 0) symptoms.push("Pallor");
+
+                            const diagnosticTest = (seed % 16 === 0) ? "PCR" : "ICGA Rapid Kit";
+
+                            let outcome = "Survived";
+                            const outMod = seed % 11;
+                            if (vaccination === "Fully Vaccinated") {
+                                outcome = "Survived";
+                            } else if (age === "<3 months" && vaccination === "Unvaccinated") {
+                                outcome = (outMod < 5) ? "Survived" : (outMod < 10 ? "Mortality" : "Unavailable");
+                            } else {
+                                outcome = (outMod < 8) ? "Survived" : (outMod < 10 ? "Mortality" : "Unavailable");
+                            }
+
+                            records.push({
+                                internalId: `sim_capiz_${clinicObj.prefix.toLowerCase()}_${String(clinicSeq).padStart(3, '0')}`,
+                                id: `CPV-${clinicObj.prefix}-${String(clinicSeq).padStart(3, '0')} [SIM]`,
+                                recordType: "SIMULATED",
+                                simulationNote: "Simulated case for Capiz multi-clinic modeling (2023-2025); clearly labeled to distinguish from verified clinic registries.",
+                                clinic: clinicObj.code,
+                                date: dateStr,
+                                season: seasonStr,
+                                age: age,
+                                sex: sex,
+                                breed: breed,
+                                breedSpecify: breedSpecify,
+                                breedDetail: breedDetail,
+                                vaccination: vaccination,
+                                symptoms: symptoms,
+                                diagnosticTest: diagnosticTest,
+                                cpvResult: "Positive",
+                                outcome: outcome,
+                                timestamp: new Date(2026, 10, 16, 7, 20, globalIdx % 60).toISOString()
+                            });
+
+                            clinicSeq++;
+                            globalIdx++;
+                        }
+                    });
+                });
+            });
+
+            return records;
+        }
+
+        const CAPIZ_CONFIRMED_CASES = buildCapizDataset();
+
+        window.onload = function() {
+            let seeded = false;
+            try {
+                const savedData = localStorage.getItem('capsu_cpv_capiz_v6');
+                if (savedData) {
+                    try { cases = JSON.parse(savedData); } catch(e) { cases = []; }
+                }
+                seeded = localStorage.getItem('capiz_cases_seeded_v6') === 'true';
+            } catch(e) {
+                cases = [];
+            }
+            window.cases = cases;
+
+            if (!seeded || cases.length === 0) {
+                mergeArrays(CAPIZ_CONFIRMED_CASES);
+                cases = window.cases;
+                try {
+                    localStorage.setItem('capiz_cases_seeded_v6', 'true');
+                } catch(e) {}
+            } else {
+                let migrated = false;
+                cases.forEach((c, idx) => {
+                    if (!c.internalId) {
+                        c.internalId = 'case_init_' + Date.now() + '_' + idx + '_' + Math.random().toString(36).substr(2, 5);
+                        migrated = true;
+                    }
+                });
+                if (migrated) saveDataLocalOnly();
+                updateAllViews();
+            }
+
+            try { initPeerJS(); } catch(e) {}
+            toggleBreedSpecify();
+        };
+
+        function populateClinicFilters() {
+            const analyticsSelect = document.getElementById('clinicFilter');
+            const registrySelect = document.getElementById('registryClinicFilter');
+            if (!analyticsSelect || !registrySelect) return;
+
+            const currentVal = analyticsSelect.value || registrySelect.value || 'All';
+
+            const countMap = {};
+            cases.forEach(c => {
+                const cl = (c.clinic || 'Unassigned').trim();
+                countMap[cl] = (countMap[cl] || 0) + 1;
+            });
+
+            const allClinics = Array.from(new Set([...DEFAULT_CLINICS, ...Object.keys(countMap)])).sort((a, b) => a.localeCompare(b));
+
+            let optionsHtml = `<option value="All">All Clinics (${cases.length})</option>`;
+            allClinics.forEach(cl => {
+                const cnt = countMap[cl] || 0;
+                optionsHtml += `<option value="${escapeHtml(cl)}">${escapeHtml(cl)} (${cnt})</option>`;
+            });
+
+            analyticsSelect.innerHTML = optionsHtml;
+            registrySelect.innerHTML = optionsHtml;
+
+            if (currentVal === 'All' || allClinics.includes(currentVal)) {
+                analyticsSelect.value = currentVal;
+                registrySelect.value = currentVal;
+            } else {
+                analyticsSelect.value = 'All';
+                registrySelect.value = 'All';
+            }
+
+            updateClinicFilterLabels();
+        }
+
+        function syncClinicFilters(selectedClinic) {
+            const analyticsSelect = document.getElementById('clinicFilter');
+            const registrySelect = document.getElementById('registryClinicFilter');
+            if (analyticsSelect) analyticsSelect.value = selectedClinic;
+            if (registrySelect) registrySelect.value = selectedClinic;
+
+            updateClinicFilterLabels();
+            updateAnalyticsViews();
+            filterRegistry();
+        }
+
+        function updateClinicFilterLabels() {
+            const selectedClinic = document.getElementById('clinicFilter') ? document.getElementById('clinicFilter').value : 'All';
+            const subtitle = document.getElementById('analytics-scope-subtitle');
+            const headerBtnLabel = document.getElementById('header-export-label');
+            const regBtnLabel = document.getElementById('registry-export-label');
+
+            if (selectedClinic === 'All') {
+                if (subtitle) subtitle.innerText = 'Showing all clinics combined';
+                if (headerBtnLabel) headerBtnLabel.innerText = 'Export XLSX';
+                if (regBtnLabel) regBtnLabel.innerText = 'Export XLSX (All)';
+            } else {
+                if (subtitle) subtitle.innerText = `Filtered by ${selectedClinic}`;
+                if (headerBtnLabel) headerBtnLabel.innerText = `Export ${selectedClinic}`;
+                if (regBtnLabel) regBtnLabel.innerText = `Export ${selectedClinic}`;
+            }
+        }
+
+        function switchTab(tabName) {
+            ['entry', 'tally', 'registry', 'settings'].forEach(t => {
+                const sec = document.getElementById(`sec-${t}`);
+                const btn = document.getElementById(`tab-${t}`);
+                if (sec) sec.classList.remove('active');
+                if (btn) btn.classList.remove('active');
+            });
+
+            const activeSection = document.getElementById(`sec-${tabName}`);
+            const activeBtn = document.getElementById(`tab-${tabName}`);
+            if (activeSection) activeSection.classList.add('active');
+            if (activeBtn) activeBtn.classList.add('active');
+            window.scrollTo(0, 0);
+        }
+
+        function autoGenerateId() {
+            if (editingInternalId && document.getElementById('caseId').value.trim() !== '') {
+                return;
+            }
+            const clinicSelect = document.getElementById('clinicCode');
+            const clinic = clinicSelect.value;
+            if (!clinic) {
+                document.getElementById('caseId').value = '';
+                return;
+            }
+            const code = clinic.replace('Clinic ', '').trim();
+            const clinicCases = cases.filter(c => c.clinic === clinic);
+            const nextNum = String(clinicCases.length + 1).padStart(3, '0');
+            document.getElementById('caseId').value = `CPV-${code}-${nextNum}`;
+        }
+
+        function showToast(msg, isError = false) {
+            const toast = document.getElementById('toast');
+            const icon = document.getElementById('toast-icon');
+            document.getElementById('toast-msg').innerText = msg;
+            icon.innerText = isError ? "⚠️" : "✅";
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        function showCustomConfirm(title, message, onConfirm) {
+            document.getElementById('confirm-title').innerText = title;
+            document.getElementById('confirm-msg').innerText = message;
+            const yesBtn = document.getElementById('confirm-yes-btn');
+            yesBtn.onclick = () => {
+                closeConfirmModal();
+                onConfirm();
+            };
+            document.getElementById('confirm-modal').classList.add('open');
+        }
+
+        function closeConfirmModal() {
+            document.getElementById('confirm-modal').classList.remove('open');
+        }
+
+        function autoSetSeason() {
+            const dateVal = document.getElementById('admissionDate').value;
+            if (!dateVal) return;
+            const month = parseInt(dateVal.split('-')[1], 10);
+            const seasonSelect = document.getElementById('season');
+            seasonSelect.value = (month >= 6 && month <= 11) ? "Wet (June-Nov)" : "Dry (Dec-May)";
+        }
+
+        function toggleBreedSpecify() {
+            const val = document.getElementById('breedCategory').value;
+            const input = document.getElementById('breedSpecify');
+            if (!input) return;
+            if (val === 'Purebred') {
+                input.style.display = 'block';
+            } else {
+                input.style.display = 'none';
+                input.value = '';
+            }
+        }
+
+        function toggleOtherSign() {
+            const isChecked = document.getElementById('sign_other').checked;
+            const box = document.getElementById('otherSignText');
+            const hint = document.getElementById('otherSignHint');
+            if (isChecked) {
+                box.classList.remove('hidden');
+                if (hint) hint.classList.remove('hidden');
+            } else {
+                box.classList.add('hidden');
+                box.value = '';
+                if (hint) hint.classList.add('hidden');
+            }
+        }
+
+        function saveDataLocalOnly() {
+            try {
+                localStorage.setItem('capsu_cpv_capiz_v6', JSON.stringify(cases));
+            } catch(e) {}
+            window.cases = cases;
+        }
+
+        function cancelEdit() {
+            editingInternalId = null;
+            document.getElementById('edit-banner').classList.add('hidden');
+            document.getElementById('submitBtnText').innerText = "Save Case to Database";
+            document.getElementById('submitBtnIcon').innerText = "💾";
+            document.getElementById('submitBtn').className = "btn btn-primary";
+            document.getElementById('cpvForm').reset();
+            autoSetSeason();
+            toggleBreedSpecify();
+            toggleOtherSign();
+            autoGenerateId();
+        }
+
+        function editCase(internalId) {
+            const c = cases.find(item => item.internalId === internalId || item.id === internalId);
+            if (!c) return showToast("Case record not found.", true);
+
+            editingInternalId = c.internalId;
+            switchTab('entry');
+
+            document.getElementById('clinicCode').value = c.clinic || '';
+            document.getElementById('caseId').value = c.id || '';
+            document.getElementById('admissionDate').value = c.date || '';
+            document.getElementById('season').value = c.season || 'Dry (Dec-May)';
+            document.getElementById('ageCategory').value = c.age || '<3 months';
+            document.getElementById('sex').value = c.sex || 'Male';
+            document.getElementById('breedCategory').value = c.breed || 'Purebred';
+            document.getElementById('breedSpecify').value = c.breedSpecify || '';
+            toggleBreedSpecify();
+
+            document.getElementById('vaccinationStatus').value = c.vaccination || 'Unvaccinated';
+            document.getElementById('diagnosticTest').value = c.diagnosticTest || 'ICGA Rapid Kit';
+            document.getElementById('cpvResult').value = c.cpvResult || 'Positive';
+            document.getElementById('terminalOutcome').value = c.outcome || 'Survived';
+
+            const builtinMap = {
+                'Lethargy': 'sign_lethargy', 'Vomiting': 'sign_vomiting',
+                'Diarrhea (Non-hem)': 'sign_diarrhea', 'Hem. Enteritis (Bloody)': 'sign_bloody',
+                'Inappetence': 'sign_inappetence', 'Anorexia': 'sign_anorexia',
+                'Dehydration': 'sign_dehydration', 'Melena': 'sign_melena',
+                'Fever': 'sign_fever', 'Pallor (Pale Mucosa)': 'sign_pale',
+                'Pallor': 'sign_pale',
+                'Abdominal Pain': 'sign_abdominal_pain', 'Not Recorded': 'sign_not_recorded'
+            };
+
+            Object.values(builtinMap).forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.checked = false;
+            });
+
+            const customSigns = [];
+            let symList = Array.isArray(c.symptoms) ? c.symptoms : (typeof c.symptoms === 'string' ? c.symptoms.split(',') : []);
+
+            symList.forEach(s => {
+                const cleanS = s.trim();
+                const matchedId = Object.keys(builtinMap).find(k => k.toLowerCase() === cleanS.toLowerCase());
+                if (matchedId) {
+                    document.getElementById(builtinMap[matchedId]).checked = true;
+                } else if (cleanS) {
+                    customSigns.push(cleanS);
+                }
+            });
+
+            if (customSigns.length > 0) {
+                document.getElementById('sign_other').checked = true;
+                document.getElementById('otherSignText').value = customSigns.join(', ');
+                toggleOtherSign();
+            } else {
+                document.getElementById('sign_other').checked = false;
+                toggleOtherSign();
+            }
+
+            document.getElementById('edit-banner-text').innerText = `Editing Case: ${c.id}`;
+            document.getElementById('edit-banner').classList.remove('hidden');
+            document.getElementById('submitBtnText').innerText = `Update Case Record (${c.id})`;
+            document.getElementById('submitBtnIcon').innerText = "✅";
+            document.getElementById('submitBtn').className = "btn btn-amber";
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function handleFormSubmit(e) {
+            e.preventDefault();
+
+            const enteredCaseId = document.getElementById('caseId').value.trim();
+            if (!enteredCaseId) {
+                return showToast("Please enter a Case Name or ID.", true);
+            }
+
+            const symptoms = [];
+            const checks = [
+                {id: 'sign_lethargy', name: 'Lethargy'}, {id: 'sign_vomiting', name: 'Vomiting'},
+                {id: 'sign_diarrhea', name: 'Diarrhea (Non-hem)'}, {id: 'sign_bloody', name: 'Hem. Enteritis (Bloody)'},
+                {id: 'sign_inappetence', name: 'Inappetence'}, {id: 'sign_anorexia', name: 'Anorexia'},
+                {id: 'sign_dehydration', name: 'Dehydration'}, {id: 'sign_melena', name: 'Melena'},
+                {id: 'sign_fever', name: 'Fever'}, {id: 'sign_pale', name: 'Pallor'},
+                {id: 'sign_abdominal_pain', name: 'Abdominal Pain'}, {id: 'sign_not_recorded', name: 'Not Recorded'}
+            ];
+
+            checks.forEach(c => { if(document.getElementById(c.id).checked) symptoms.push(c.name); });
+
+            if (document.getElementById('sign_other').checked) {
+                const otherVal = document.getElementById('otherSignText').value.trim();
+                if (otherVal) {
+                    otherVal.split(',').forEach(part => {
+                        const cleanPart = part.trim();
+                        if (cleanPart) {
+                            symptoms.push(cleanPart.charAt(0).toUpperCase() + cleanPart.slice(1).toLowerCase());
+                        }
+                    });
+                }
+            }
+
+            const breedCat = document.getElementById('breedCategory').value;
+            let breedSpec = document.getElementById('breedSpecify').value.trim();
+            if (breedSpec) {
+                breedSpec = breedSpec.split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+            }
+            const breedDisplay = (breedCat === 'Purebred' && breedSpec) ? `Purebred (${breedSpec})` : breedCat;
+
+            if (editingInternalId) {
+                const existingIndex = cases.findIndex(c => c.internalId === editingInternalId);
+                if (existingIndex !== -1) {
+                    cases[existingIndex].id = enteredCaseId;
+                    cases[existingIndex].clinic = document.getElementById('clinicCode').value.trim();
+                    cases[existingIndex].date = document.getElementById('admissionDate').value;
+                    cases[existingIndex].season = document.getElementById('season').value;
+                    cases[existingIndex].age = document.getElementById('ageCategory').value;
+                    cases[existingIndex].sex = document.getElementById('sex').value;
+                    cases[existingIndex].breed = breedCat;
+                    cases[existingIndex].breedSpecify = breedSpec;
+                    cases[existingIndex].breedDetail = breedDisplay;
+                    cases[existingIndex].vaccination = document.getElementById('vaccinationStatus').value;
+                    cases[existingIndex].symptoms = symptoms;
+                    cases[existingIndex].diagnosticTest = document.getElementById('diagnosticTest').value;
+                    cases[existingIndex].cpvResult = document.getElementById('cpvResult').value;
+                    cases[existingIndex].outcome = document.getElementById('terminalOutcome').value;
+                    cases[existingIndex].timestamp = new Date().toISOString();
+
+                    saveDataLocalOnly();
+                    updateAllViews();
+                    if (typeof networkSaveCase === 'function') networkSaveCase(cases[existingIndex]);
+                    showToast("Record updated: " + cases[existingIndex].id);
+                    cancelEdit();
+                    return;
+                }
+            }
+
+            const newCase = {
+                internalId: 'case_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+                id: enteredCaseId,
+                clinic: document.getElementById('clinicCode').value.trim(),
+                date: document.getElementById('admissionDate').value,
+                season: document.getElementById('season').value,
+                age: document.getElementById('ageCategory').value,
+                sex: document.getElementById('sex').value,
+                breed: breedCat,
+                breedSpecify: breedSpec,
+                breedDetail: breedDisplay,
+                vaccination: document.getElementById('vaccinationStatus').value,
+                symptoms: symptoms,
+                diagnosticTest: document.getElementById('diagnosticTest').value,
+                cpvResult: document.getElementById('cpvResult').value,
+                outcome: document.getElementById('terminalOutcome').value,
+                timestamp: new Date().toISOString()
+            };
+
+            cases.unshift(newCase);
+            saveDataLocalOnly();
+            updateAllViews();
+            if (typeof networkSaveCase === 'function') networkSaveCase(newCase);
+
+            showToast("Saved: " + newCase.id);
+
+            document.getElementById('cpvForm').reset();
+            document.getElementById('clinicCode').value = newCase.clinic;
+            document.getElementById('admissionDate').value = newCase.date;
+            autoSetSeason();
+            toggleBreedSpecify();
+            toggleOtherSign();
+            autoGenerateId();
+        }
+
+        function getFilteredCases() {
+            const filterClinic = document.getElementById('clinicFilter') ? document.getElementById('clinicFilter').value : 'All';
+            const filterYear = document.getElementById('yearFilter').value;
+            const filterMonth = document.getElementById('monthFilter') ? document.getElementById('monthFilter').value : 'All';
+
+            return cases.filter(c => {
+                if (!c.date) return false;
+                const matchClinic = (filterClinic === 'All') || (c.clinic === filterClinic);
+                const matchYear = (filterYear === 'All') || c.date.startsWith(filterYear);
+                const monthStr = c.date.split('-')[1];
+                const matchMonth = (filterMonth === 'All') || (monthStr === filterMonth);
+                return matchClinic && matchYear && matchMonth;
+            });
+        }
+
+        function updateAllViews() {
+            document.getElementById('case-count-badge').innerText = cases.length;
+            populateClinicFilters();
+            updateAnalyticsViews();
+            try { renderRegistry(); } catch(e) {}
+        }
+
+        function updateAnalyticsViews() {
+            const posFiltered = getFilteredCases().filter(c => c.cpvResult === 'Positive').length;
+            const posBadge = document.getElementById('total-pos-badge');
+            if (posBadge) posBadge.innerText = posFiltered;
+            try { renderMetrics(); } catch(e) {}
+            try { renderTallyTables(); } catch(e) {}
+            try { renderCrossTab(); } catch(e) {}
+            try { renderTrendChart(); } catch(e) {}
+            try { renderOutcomeTrendChart(); } catch(e) {}
+        }
+
+        function renderMetrics() {
+            const filteredData = getFilteredCases();
+            const total = filteredData.length;
+            const posCases = filteredData.filter(c => c.cpvResult === 'Positive');
+            const posCount = posCases.length;
+
+            document.getElementById('stat-total-cases').innerText = total;
+            document.getElementById('stat-pos-count').innerText = posCount;
+
+            const survived = posCases.filter(c => c.outcome === 'Survived').length;
+            const mortality = posCases.filter(c => c.outcome === 'Mortality').length;
+            const decidedOutcomes = survived + mortality;
+
+            const survRate = decidedOutcomes > 0 ? Math.round((survived / decidedOutcomes) * 100) : 0;
+            const mortRate = decidedOutcomes > 0 ? Math.round((mortality / decidedOutcomes) * 100) : 0;
+
+            document.getElementById('stat-survival-rate').innerText = survRate + '%';
+            document.getElementById('stat-mortality-rate').innerText = mortRate + '%';
+        }
+
+        function buildSimpleTable(title, dataset, key, categories) {
+            const N = dataset.length;
+            let rows = categories.map(cat => {
+                const count = dataset.filter(c => c[key] === cat).length;
+                const pct = N > 0 ? ((count / N) * 100).toFixed(1) : '0.0';
+                return `<tr>
+                    <td style="font-weight:500; color:#334155;">${cat}</td>
+                    <td style="text-align:right; font-weight:700; color:#14502d;">${count}</td>
+                    <td style="text-align:right; color:#64748b;">${pct}%</td>
+                </tr>`;
+            }).join('');
+
+            return `
+            <div style="margin-bottom:16px;">
+                <h4 class="tally-group-title">${title}</h4>
+                <div class="table-wrap">
+                    <table><tbody>${rows}</tbody></table>
+                </div>
+            </div>`;
+        }
+
+        function buildPurebredTable(dataset) {
+            const purebreds = dataset.filter(c => c.breed === 'Purebred');
+            const N_pure = purebreds.length;
+            if (N_pure === 0) return '';
+
+            const breedMap = {};
+            purebreds.forEach(c => {
+                let raw = c.breedSpecify || '';
+                if (!raw && c.breedDetail) {
+                    const match = c.breedDetail.match(/Purebred \((.*)\)/i);
+                    if (match) raw = match[1];
+                }
+                if (!raw) raw = 'Unspecified Purebred';
+
+                let clean = raw.trim();
+                let normalized = clean.split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+                if (normalized === 'Shit Tzu' || normalized === 'Shi Tzu') normalized = 'Shih Tzu';
+                if (normalized === 'Pom') normalized = 'Pomeranian';
+
+                const existingKey = Object.keys(breedMap).find(k => k.toLowerCase() === normalized.toLowerCase());
+                const targetKey = existingKey || normalized;
+                breedMap[targetKey] = (breedMap[targetKey] || 0) + 1;
+            });
+
+            const sortedBreeds = Object.keys(breedMap).sort((a,b) => breedMap[b] - breedMap[a]);
+            let rows = sortedBreeds.map(bName => {
+                const count = breedMap[bName];
+                const pct = ((count / N_pure) * 100).toFixed(1);
+                return `<tr>
+                    <td style="font-weight:500; color:#334155;">${escapeHtml(bName)}</td>
+                    <td style="text-align:right; font-weight:700; color:#14502d;">${count}</td>
+                    <td style="text-align:right; color:#64748b;">${pct}%</td>
+                </tr>`;
+            }).join('');
+
+            return `
+            <div style="margin-bottom:16px;">
+                <h4 class="tally-group-title">Specific Purebred Breeds (n=${N_pure})</h4>
+                <div class="table-wrap">
+                    <table>
+                        <thead><tr><th>Breed</th><th style="text-align:right;">n</th><th style="text-align:right;">% Purebred</th></tr></thead>
+                        <tbody>${rows}</tbody>
+                    </table>
+                </div>
+            </div>`;
+        }
+
+        function renderTallyTables() {
+            const pos = getFilteredCases().filter(c => c.cpvResult === 'Positive');
+            const N = pos.length;
+
+            let html = buildSimpleTable('Age Bracket', pos, 'age', ['<3 months', '3-12 months', '>1-3 years', '>3-5 years', '>5 years', 'Not Recorded']);
+            html += buildSimpleTable('Sex', pos, 'sex', ['Male', 'Female', 'Not Recorded']);
+            html += buildSimpleTable('Breed Category', pos, 'breed', ['Purebred', 'Mixed/Aspin', 'Not Recorded']);
+            html += buildPurebredTable(pos);
+            html += buildSimpleTable('Vaccination', pos, 'vaccination', ['Fully Vaccinated', 'Partially Vaccinated', 'Unvaccinated', 'Unknown/Unrecorded']);
+            html += buildSimpleTable('Diagnostic Test', pos, 'diagnosticTest', ['ICGA Rapid Kit', 'PCR', 'Both', 'Not Recorded']);
+
+            document.getElementById('demographic-tables').innerHTML = html;
+
+            const symMap = {};
+            pos.forEach(c => {
+                if(!c.symptoms) return;
+                let list = Array.isArray(c.symptoms) ? c.symptoms : String(c.symptoms).split(',').map(s => s.trim()).filter(Boolean);
+                list.forEach(rawSym => {
+                    if (!rawSym || !rawSym.trim()) return;
+                    let clean = rawSym.trim();
+                    const normalized = clean.charAt(0).toUpperCase() + clean.slice(1).toLowerCase();
+                    const existingKey = Object.keys(symMap).find(k => k.toLowerCase() === normalized.toLowerCase());
+                    const targetKey = existingKey || normalized;
+                    symMap[targetKey] = (symMap[targetKey] || 0) + 1;
+                });
+            });
+
+            const sortedSyms = Object.keys(symMap).sort((a,b) => symMap[b] - symMap[a]);
+            let symHtml = sortedSyms.map(sym => {
+                const count = symMap[sym];
+                const pct = N > 0 ? ((count / N) * 100).toFixed(1) : '0.0';
+                return `<tr>
+                    <td style="font-weight:500; color:#334155;">${escapeHtml(sym)}</td>
+                    <td style="text-align:right; font-weight:700; color:#14502d;">${count}</td>
+                    <td style="text-align:right; color:#64748b;">${pct}%</td>
+                </tr>`;
+            }).join('');
+
+            if(sortedSyms.length === 0) symHtml = `<tr><td colspan="3" style="text-align:center; color:#94a3b8; padding:16px;">No clinical signs logged.</td></tr>`;
+            document.getElementById('tally-symptoms-body').innerHTML = symHtml;
+        }
+
+        function renderCrossTab() {
+            const pos = getFilteredCases().filter(c => c.cpvResult === 'Positive');
+            const vGroups = ['Fully Vaccinated', 'Partially Vaccinated', 'Unvaccinated', 'Unknown/Unrecorded'];
+
+            const html = vGroups.map(v => {
+                const sub = pos.filter(c => c.vaccination === v);
+                const s = sub.filter(c => c.outcome === 'Survived').length;
+                const m = sub.filter(c => c.outcome === 'Mortality').length;
+                return `<tr>
+                    <td style="font-weight:600; color:#334155;">${v}</td>
+                    <td style="text-align:center; font-weight:700; color:#1d4ed8; background:#eff6ff;">${s}</td>
+                    <td style="text-align:center; font-weight:700; color:#b91c1c; background:#fef2f2;">${m}</td>
+                    <td style="text-align:right; font-weight:700;">${sub.length}</td>
+                </tr>`;
+            }).join('');
+            const tbody = document.getElementById('crosstab-body');
+            if (tbody) tbody.innerHTML = html;
+        }
+
+        function renderTrendChart() {
+            if (typeof Chart === 'undefined') return;
+            const filterClinic = document.getElementById('clinicFilter') ? document.getElementById('clinicFilter').value : 'All';
+            const filterYear = document.getElementById('yearFilter').value;
+            const filterMonth = document.getElementById('monthFilter') ? document.getElementById('monthFilter').value : 'All';
+
+            let datasets = [];
+
+            if (filterYear === 'All') {
+                const posCases = cases.filter(c => c.cpvResult === 'Positive' && (filterClinic === 'All' || c.clinic === filterClinic));
+                const yearsPresent = [...new Set(posCases.map(c => c.date ? c.date.substring(0,4) : null).filter(Boolean))].sort();
+
+                const palette = [
+                    { border: '#3b82f6', bg: 'rgba(59, 130, 246, 0.1)' },
+                    { border: '#14502d', bg: 'rgba(20, 80, 45, 0.1)' },
+                    { border: '#f59e0b', bg: 'rgba(245, 158, 11, 0.1)' },
+                    { border: '#ef4444', bg: 'rgba(239, 68, 68, 0.1)' },
+                    { border: '#8b5cf6', bg: 'rgba(139, 92, 246, 0.1)' }
+                ];
+
+                yearsPresent.forEach((yr, idx) => {
+                    const yearCases = posCases.filter(c => c.date && c.date.startsWith(yr));
+                    const counts = new Array(12).fill(0);
+                    yearCases.forEach(c => {
+                        const m = parseInt(c.date.split('-')[1], 10) - 1;
+                        if (filterMonth === 'All' || c.date.split('-')[1] === filterMonth) {
+                            if(m >= 0 && m <= 11) counts[m]++;
+                        }
+                    });
+
+                    const color = palette[idx % palette.length];
+                    datasets.push({
+                        label: yr,
+                        data: counts,
+                        borderColor: color.border,
+                        backgroundColor: color.bg,
+                        tension: 0.3,
+                        fill: false,
+                        borderWidth: 2,
+                        pointBackgroundColor: color.border
+                    });
+                });
+            } else {
+                const filtered = getFilteredCases();
+                const posCases = filtered.filter(c => c.cpvResult === 'Positive');
+                const counts = new Array(12).fill(0);
+
+                posCases.forEach(c => {
+                    if(c.date) {
+                        const m = parseInt(c.date.split('-')[1], 10) - 1;
+                        if(m >= 0 && m <= 11) counts[m]++;
+                    }
+                });
+
+                datasets.push({
+                    label: `Positives (${filterYear})`,
+                    data: counts,
+                    borderColor: '#14502d',
+                    backgroundColor: 'rgba(20, 80, 45, 0.1)',
+                    tension: 0.3,
+                    fill: true,
+                    borderWidth: 2,
+                    pointBackgroundColor: '#14502d'
+                });
+            }
+
+            const ctx = document.getElementById('monthlyTrendChart');
+            if(!ctx) return;
+            if(window.trendChart instanceof Chart) window.trendChart.destroy();
+
+            window.trendChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: datasets.length > 1 || filterYear !== 'All',
+                            position: 'top',
+                            labels: { boxWidth: 12, font: { size: 11 } }
+                        }
+                    },
+                    scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+                }
+            });
+        }
+
+        function renderOutcomeTrendChart() {
+            if (typeof Chart === 'undefined') return;
+            const filterClinic = document.getElementById('clinicFilter') ? document.getElementById('clinicFilter').value : 'All';
+            const filterYear = document.getElementById('yearFilter').value;
+            const filterMonth = document.getElementById('monthFilter') ? document.getElementById('monthFilter').value : 'All';
+
+            const posCases = cases.filter(c => c.cpvResult === 'Positive' && (filterClinic === 'All' || c.clinic === filterClinic));
+            const survCounts = new Array(12).fill(0);
+            const mortCounts = new Array(12).fill(0);
+
+            posCases.forEach(c => {
+                if(c.date) {
+                    const y = c.date.substring(0,4);
+                    const mStr = c.date.split('-')[1];
+                    if (filterYear !== 'All' && y !== filterYear) return;
+                    if (filterMonth !== 'All' && mStr !== filterMonth) return;
+
+                    const m = parseInt(mStr, 10) - 1;
+                    if(m >= 0 && m <= 11) {
+                        if (c.outcome === 'Survived') survCounts[m]++;
+                        if (c.outcome === 'Mortality') mortCounts[m]++;
+                    }
+                }
+            });
+
+            const ctx = document.getElementById('outcomeTrendChart');
+            if(!ctx) return;
+            if(window.outcomeChart instanceof Chart) window.outcomeChart.destroy();
+
+            window.outcomeChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                    datasets: [
+                        {
+                            label: 'Survived',
+                            data: survCounts,
+                            borderColor: '#2563eb',
+                            backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                            tension: 0.3,
+                            fill: true,
+                            borderWidth: 2,
+                            pointBackgroundColor: '#2563eb'
+                        },
+                        {
+                            label: 'Mortality',
+                            data: mortCounts,
+                            borderColor: '#dc2626',
+                            backgroundColor: 'rgba(220, 38, 38, 0.1)',
+                            tension: 0.3,
+                            fill: true,
+                            borderWidth: 2,
+                            pointBackgroundColor: '#dc2626'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: true, position: 'top', labels: { boxWidth: 12, font: { size: 11 } } }
+                    },
+                    scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+                }
+            });
+        }
+
+        function deleteCase(internalId) {
+            const target = cases.find(c => c.internalId === internalId || c.id === internalId);
+            const label = target ? target.id : internalId;
+            showCustomConfirm("Delete Record", `Are you sure you want to delete case "${label}"?`, () => {
+                cases = cases.filter(c => c.internalId !== internalId && (target ? true : c.id !== internalId));
+                saveDataLocalOnly();
+                updateAllViews();
+                showToast("Case deleted.");
+                autoGenerateId();
+            });
+        }
+
+        function filterRegistry() {
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            renderRegistry(query);
+        }
+
+        function renderRegistry(query = '') {
+            const tbody = document.getElementById('registry-body');
+            const selectedClinic = document.getElementById('registryClinicFilter') ? document.getElementById('registryClinicFilter').value : 'All';
+            const q = (query || document.getElementById('searchInput').value || '').toLowerCase();
+            const filteredCases = cases.filter(c => {
+                const matchClinic = (selectedClinic === 'All') || (c.clinic === selectedClinic);
+                const symText = Array.isArray(c.symptoms) ? c.symptoms.join(' ').toLowerCase() : (c.symptoms || '').toLowerCase();
+                const matchQuery = !q ||
+                       (c.id && c.id.toLowerCase().includes(q)) ||
+                       (c.clinic && c.clinic.toLowerCase().includes(q)) ||
+                       (c.date && c.date.includes(q)) ||
+                       (c.breedDetail && c.breedDetail.toLowerCase().includes(q)) ||
+                       (c.breedSpecify && c.breedSpecify.toLowerCase().includes(q)) ||
+                       (c.outcome && c.outcome.toLowerCase().includes(q)) ||
+                       symText.includes(q);
+                return matchClinic && matchQuery;
+            });
+
+            const summaryEl = document.getElementById('registry-filter-summary');
+            if (summaryEl) {
+                const scopeText = selectedClinic === 'All' ? 'All Clinics' : selectedClinic;
+                summaryEl.innerText = `Showing ${filteredCases.length} of ${cases.length} records • ${scopeText}`;
+            }
+
+            if (filteredCases.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" style="padding:28px; text-align:center; color:#94a3b8;">No records found for this filter.</td></tr>`;
+                return;
+            }
+
+            let html = '';
+            filteredCases.forEach(c => {
+                const resClass = c.cpvResult === 'Positive' ? 'badge badge-pos' : 'badge badge-neg';
+                const outClass = c.outcome === 'Survived' ? 'badge badge-surv' : (c.outcome === 'Mortality' ? 'badge badge-mort' : 'badge badge-unavail');
+                let symHtml = '';
+
+                if (c.symptoms && Array.isArray(c.symptoms)) {
+                    symHtml = c.symptoms.map(s => `<span class="sym-tag">${escapeHtml(s)}</span>`).join('');
+                } else if (c.symptoms && typeof c.symptoms === 'string') {
+                    symHtml = c.symptoms.split(',').map(s => `<span class="sym-tag">${escapeHtml(s.trim())}</span>`).join('');
+                }
+                if (!symHtml) symHtml = '<span style="font-size:11px; color:#94a3b8; font-style:italic;">None logged</span>';
+
+                html += `
+                <tr>
+                    <td>
+                        <div style="font-weight:700; color:#0f172a;">${escapeHtml(c.id || 'N/A')}</div>
+                        <div style="font-size:10px; color:#64748b;">${escapeHtml(c.date || '')} | <span style="font-weight:700; color:#14502d;">${escapeHtml(c.clinic || 'Unassigned')}</span></div>
+                    </td>
+                    <td>
+                        <div style="font-weight:600; color:#334155;">${escapeHtml(c.age || 'N/A')}, ${escapeHtml(c.sex || 'N/A')}</div>
+                        <div style="font-size:10px; color:#64748b;">${escapeHtml(c.breedDetail || c.breed || 'N/A')}</div>
+                    </td>
+                    <td style="color:#475569;">${escapeHtml(c.vaccination || 'N/A')}</td>
+                    <td>${symHtml}</td>
+                    <td style="text-align:center;"><span class="${resClass}">${escapeHtml(c.cpvResult || 'N/A')}</span></td>
+                    <td style="text-align:center;"><span class="${outClass}">${escapeHtml(c.outcome || 'N/A')}</span></td>
+                    <td style="text-align:center; white-space:nowrap;">
+                        <button type="button" onclick="editCase('${escapeHtml(c.internalId)}')" class="btn btn-sm" style="background:#eff6ff; color:#2563eb; margin-right:4px;" title="Edit Case">✏️</button>
+                        <button type="button" onclick="deleteCase('${escapeHtml(c.internalId)}')" class="btn btn-sm" style="background:#fef2f2; color:#dc2626;" title="Delete Case">🗑️</button>
+                    </td>
+                </tr>`;
+            });
+            tbody.innerHTML = html;
+        }
+
+        function showFallbackModal(title, textContent, isMergeMode = false) {
+            document.getElementById('modal-title').innerText = title;
+            const txt = document.getElementById('modal-textarea');
+            txt.value = textContent;
+
+            if (isMergeMode) {
+                txt.removeAttribute('readonly');
+                txt.placeholder = "Paste your JSON backup text here...";
+                document.getElementById('modal-desc').innerText = "Paste your copied backup JSON text into the box below and tap Merge Data Now:";
+                document.getElementById('btn-modal-copy').classList.add('hidden');
+                document.getElementById('btn-modal-merge').classList.remove('hidden');
+            } else {
+                txt.setAttribute('readonly', 'readonly');
+                document.getElementById('modal-desc').innerText = "Copy the raw JSON backup text below:";
+                document.getElementById('btn-modal-copy').classList.remove('hidden');
+                document.getElementById('btn-modal-merge').classList.add('hidden');
+            }
+
+            document.getElementById('fallback-modal').classList.add('open');
+        }
+
+        function closeFallbackModal() {
+            document.getElementById('fallback-modal').classList.remove('open');
+        }
+
+        function openPasteMergeModal() {
+            showFallbackModal("Paste & Merge JSON Backup", "", true);
+        }
+
+        function executePastedMerge() {
+            const text = document.getElementById('modal-textarea').value.trim();
+            if (!text) return showToast("Please paste JSON backup text first!", true);
+
+            try {
+                let cleanText = text;
+                if (cleanText.startsWith("data:")) {
+                    const commaIdx = cleanText.indexOf(',');
+                    if (commaIdx !== -1) {
+                        const payload = cleanText.substring(commaIdx + 1);
+                        cleanText = cleanText.includes('base64') ? atob(payload) : decodeURIComponent(payload);
+                    }
+                }
+                let imported = JSON.parse(cleanText);
+                if (!Array.isArray(imported) && imported && typeof imported === 'object') {
+                    if (Array.isArray(imported.cases)) imported = imported.cases;
+                    else if (Array.isArray(imported.data)) imported = imported.data;
+                    else if (Array.isArray(imported.CPV_Data)) imported = imported.CPV_Data;
+                }
+                if (Array.isArray(imported)) {
+                    const added = mergeArrays(imported);
+                    showToast(`Merged ${added} cases successfully!`);
+                    closeFallbackModal();
+                } else {
+                    showToast("Invalid JSON format pasted.", true);
+                }
+            } catch (err) {
+                showToast("Error parsing pasted JSON text.", true);
+            }
+        }
+
+        function copyModalText() {
+            const txt = document.getElementById('modal-textarea');
+            txt.select();
+            txt.setSelectionRange(0, 999999);
+            try {
+                document.execCommand('copy');
+                showToast("Copied to clipboard!");
+            } catch (err) {
+                showToast("Please select all and copy manually.", true);
+            }
+        }
+
+        function copyDataTextModal() {
+            if (cases.length === 0) return showToast("No data to copy!", true);
+            const dataStr = JSON.stringify(cases, null, 2);
+            showFallbackModal("Backup JSON Data (Copy & Save)", dataStr);
+        }
+
+        function buildClinicSummaryRows() {
+            const clinicNames = Array.from(new Set(cases.map(c => (c.clinic || 'Unassigned').trim()))).sort((a, b) => a.localeCompare(b));
+            const summary = clinicNames.map(cl => {
+                const sub = cases.filter(c => (c.clinic || 'Unassigned').trim() === cl);
+                const pos = sub.filter(c => c.cpvResult === 'Positive');
+                const neg = sub.filter(c => c.cpvResult !== 'Positive');
+                const surv = pos.filter(c => c.outcome === 'Survived').length;
+                const mort = pos.filter(c => c.outcome === 'Mortality').length;
+                const unavail = pos.filter(c => c.outcome !== 'Survived' && c.outcome !== 'Mortality').length;
+                const decided = surv + mort;
+                return {
+                    'Clinic': cl,
+                    'Total Logged': sub.length,
+                    'CPV Positive': pos.length,
+                    'CPV Negative': neg.length,
+                    'Survived (CPV+)': surv,
+                    'Mortality (CPV+)': mort,
+                    'Unavailable (CPV+)': unavail,
+                    'Survival Rate (%)': decided > 0 ? Number(((surv / decided) * 100).toFixed(1)) : 0,
+                    'Mortality Rate (%)': decided > 0 ? Number(((mort / decided) * 100).toFixed(1)) : 0
+                };
+            });
+
+            const allPos = cases.filter(c => c.cpvResult === 'Positive');
+            const allSurv = allPos.filter(c => c.outcome === 'Survived').length;
+            const allMort = allPos.filter(c => c.outcome === 'Mortality').length;
+            const allUnavail = allPos.filter(c => c.outcome !== 'Survived' && c.outcome !== 'Mortality').length;
+            const allDecided = allSurv + allMort;
+
+            summary.push({
+                'Clinic': 'TOTAL (ALL CLINICS)',
+                'Total Logged': cases.length,
+                'CPV Positive': allPos.length,
+                'CPV Negative': cases.length - allPos.length,
+                'Survived (CPV+)': allSurv,
+                'Mortality (CPV+)': allMort,
+                'Unavailable (CPV+)': allUnavail,
+                'Survival Rate (%)': allDecided > 0 ? Number(((allSurv / allDecided) * 100).toFixed(1)) : 0,
+                'Mortality Rate (%)': allDecided > 0 ? Number(((allMort / allDecided) * 100).toFixed(1)) : 0
+            });
+
+            return summary;
+        }
+
+        function exportToExcel() {
+            if (cases.length === 0) return showToast("No data to export!", true);
+            const selectedClinic = document.getElementById('clinicFilter') ? document.getElementById('clinicFilter').value : 'All';
+            const exportDataset = selectedClinic === 'All' ? cases : cases.filter(c => c.clinic === selectedClinic);
+
+            if (exportDataset.length === 0) {
+                return showToast(`No cases found for ${selectedClinic} to export!`, true);
+            }
+
+            try {
+                if (typeof XLSX === 'undefined') throw new Error("XLSX library offline");
+                const cleanCases = exportDataset.map(c => ({
+                    'Case ID': c.id || '',
+                    'Clinic': c.clinic || 'Unassigned',
+                    'Date': c.date || '',
+                    'Season': c.season || '',
+                    'Age': c.age || '',
+                    'Sex': c.sex || '',
+                    'Breed': c.breed || '',
+                    'Breed Specify': c.breedSpecify || '',
+                    'Breed Detail': c.breedDetail || c.breed || '',
+                    'Vaccination': c.vaccination || '',
+                    'Symptoms': Array.isArray(c.symptoms) ? c.symptoms.join(', ') : (c.symptoms || ''),
+                    'Diagnostic Test': c.diagnosticTest || '',
+                    'CPV Result': c.cpvResult || '',
+                    'Outcome': c.outcome || '',
+                    'Timestamp': c.timestamp || ''
+                }));
+
+                const wb = XLSX.utils.book_new();
+                const wsData = XLSX.utils.json_to_sheet(cleanCases);
+                const sheetLabel = selectedClinic === 'All' ? 'CPV_Data' : selectedClinic.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 31);
+                XLSX.utils.book_append_sheet(wb, wsData, sheetLabel);
+
+                const wsSummary = XLSX.utils.json_to_sheet(buildClinicSummaryRows());
+                XLSX.utils.book_append_sheet(wb, wsSummary, 'Clinic_Summary');
+
+                const clinicSlug = selectedClinic === 'All' ? 'All_Clinics' : selectedClinic.replace(/\s+/g, '_');
+                XLSX.writeFile(wb, `CapSU_CPV_Data_Garfin_Capiz_${clinicSlug}.xlsx`);
+                showToast(`Excel Exported (${selectedClinic === 'All' ? 'All Clinics' : selectedClinic})!`);
+            } catch (e) {
+                copyDataTextModal();
+            }
+        }
+
+        function downloadBackup() {
+            if (cases.length === 0) return showToast("No data to backup!", true);
+            const dataStr = JSON.stringify(cases, null, 2);
+            try {
+                const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+                if (isIOS && navigator.share) {
+                    const file = new File([dataStr], "CPV_Database_Backup_Capiz.json", { type: "application/json" });
+                    navigator.share({ files: [file], title: 'CPV Capiz Backup' }).catch(() => copyDataTextModal());
+                    return;
+                }
+                const blob = new Blob([dataStr], { type: "application/json" });
+                const url = URL.createObjectURL(blob);
+                const dlAnchorElem = document.createElement('a');
+                dlAnchorElem.href = url;
+                dlAnchorElem.download = "CPV_Database_Backup_Capiz.json";
+                document.body.appendChild(dlAnchorElem);
+                dlAnchorElem.click();
+                document.body.removeChild(dlAnchorElem);
+                URL.revokeObjectURL(url);
+                showToast("Backup saved!");
+            } catch (e) {
+                copyDataTextModal();
+            }
+        }
+
+        function mergeArrays(importedArray) {
+            let added = 0;
+            const merged = [...window.cases];
+
+            importedArray.forEach((ic, idx) => {
+                const hadInternalId = Boolean(ic.internalId);
+                if (!ic.internalId) ic.internalId = 'case_' + Date.now() + '_' + idx + '_' + Math.random().toString(36).substr(2, 5);
+
+                if (ic.symptoms && typeof ic.symptoms === 'string') {
+                    ic.symptoms = ic.symptoms.split(',').map(s => s.trim()).filter(Boolean);
+                }
+
+                const exists = merged.findIndex(c => {
+                    if (hadInternalId && c.internalId) {
+                        return c.internalId === ic.internalId;
+                    }
+                    return (c.id && ic.id && c.id === ic.id && c.clinic === ic.clinic && c.date === ic.date);
+                });
+                if (exists === -1) {
+                    merged.push(ic);
+                    added++;
+                } else {
+                    const existingTs = merged[exists].timestamp ? new Date(merged[exists].timestamp).getTime() : 0;
+                    const importTs = ic.timestamp ? new Date(ic.timestamp).getTime() : 1;
+                    if (importTs >= existingTs) {
+                        merged[exists] = ic;
+                    }
+                }
+            });
+
+            merged.sort((a,b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
+            cases = merged;
+            window.cases = cases;
+            saveDataLocalOnly();
+            updateAllViews();
+            autoGenerateId();
+            return added;
+        }
+
+        function restoreBackup(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+
+            reader.onload = function(e) {
+                try {
+                    let text = e.target.result.trim();
+                    if (text.startsWith("data:")) {
+                        const commaIdx = text.indexOf(',');
+                        if (commaIdx !== -1) {
+                            const payload = text.substring(commaIdx + 1);
+                            text = text.includes('base64') ? atob(payload) : decodeURIComponent(payload);
+                        }
+                    }
+                    let imported = JSON.parse(text);
+                    if (!Array.isArray(imported) && imported && typeof imported === 'object') {
+                        if (Array.isArray(imported.cases)) imported = imported.cases;
+                        else if (Array.isArray(imported.data)) imported = imported.data;
+                        else if (Array.isArray(imported.CPV_Data)) imported = imported.CPV_Data;
+                    }
+                    if (Array.isArray(imported)) {
+                        const added = mergeArrays(imported);
+                        showToast(`Merged ${added} cases!`);
+                        document.getElementById('importFile').value = '';
+                    } else {
+                        showToast("Invalid backup format.", true);
+                    }
+                } catch (err) {
+                    showToast("Error parsing file.", true);
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function promptClearAllData() {
+            showCustomConfirm("Clear All Local Records", "WARNING: This will erase all locally stored records on this browser. Make sure you have downloaded a backup first.", () => {
+                cases = [];
+                saveDataLocalOnly();
+                updateAllViews();
+                showToast("All data cleared.");
+                autoGenerateId();
+            });
+        }
+
+        function copyPeerId() {
+            const idEl = document.getElementById('peer-id-display');
+            if (!idEl || !idEl.innerText) return showToast("Sync ID not generated yet.", true);
+
+            const tempInput = document.createElement("input");
+            tempInput.value = idEl.innerText;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            try {
+                document.execCommand('copy');
+                showToast("Sync ID copied to clipboard!");
+            } catch (err) {
+                showToast("Please copy the ID manually.", true);
+            }
+            document.body.removeChild(tempInput);
+        }
+
+        function connectToPartner() {
+            const partnerId = document.getElementById('partner-code').value.trim();
+            if (!partnerId) return showToast("Please enter a valid Sync ID.", true);
+            if (!peer) return showToast("Peer network not initialized.", true);
+
+            document.getElementById('peer-status').innerText = "Connecting to host...";
+            const conn = peer.connect(partnerId);
+
+            conn.on('open', () => {
+                handleConnection(conn);
+                showToast("Connected to Host! Syncing data...");
+            });
+
+            conn.on('error', () => {
+                document.getElementById('peer-status').innerText = "Connection failed.";
+                showToast("Failed to connect to Sync ID.", true);
+            });
+        }
+
+        function handleConnection(conn) {
+            if (!connections.some(c => c.peer === conn.peer)) {
+                connections.push(conn);
+            }
+
+            document.getElementById('peer-status').innerText = "🟢 Connected! Live sync active.";
+            conn.send({ type: 'FULL_SYNC', cases: cases });
+
+            conn.on('data', (data) => {
+                if (data && data.type === 'FULL_SYNC' && Array.isArray(data.cases)) {
+                    mergeArrays(data.cases);
+                    showToast(`Synced ${data.cases.length} records from host!`);
+                } else if (data && data.type === 'NEW_CASE' && data.case) {
+                    mergeArrays([data.case]);
+                    showToast(`Live case synced: ${data.case.id}`);
+                }
+            });
+
+            conn.on('close', () => {
+                connections = connections.filter(c => c.peer !== conn.peer);
+                if (connections.length === 0) {
+                    document.getElementById('peer-status').innerText = "Disconnected.";
+                }
+            });
+        }
+
+        function networkSaveCase(newCase) {
+            connections.forEach(conn => {
+                if (conn && conn.open) {
+                    conn.send({ type: 'NEW_CASE', case: newCase });
+                }
+            });
+        }
+
+        function initPeerJS() {
+            if (typeof Peer === 'undefined') {
+                const loading = document.getElementById('peer-loading');
+                if (loading) loading.innerText = "Offline Mode: Use Download / Paste JSON Backup below to transfer data.";
+                return;
+            }
+            try {
+                peer = new Peer();
+                peer.on('open', (id) => {
+                    const el = document.getElementById('peer-id-display');
+                    if (el) el.innerText = id;
+                    const loading = document.getElementById('peer-loading');
+                    const ui = document.getElementById('peer-online-ui');
+                    if (loading) loading.classList.add('hidden');
+                    if (ui) ui.classList.remove('hidden');
+                });
+
+                peer.on('connection', (conn) => {
+                    conn.on('open', () => {
+                        handleConnection(conn);
+                        showToast("Adviser/Partner connected!");
+                    });
+                });
+
+                peer.on('error', () => {
+                    const loading = document.getElementById('peer-loading');
+                    if (loading) loading.innerText = "Sync ID offline. Use Download Backup (.json) to share with adviser!";
+                });
+            } catch(err) {
+                const loading = document.getElementById('peer-loading');
+                if (loading) loading.innerText = "Live Sync offline. Use Backup (.json) to share data!";
+            }
+        }
+    </script>
+</body>
+</html>
