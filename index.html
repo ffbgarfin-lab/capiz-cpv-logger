@@ -2578,6 +2578,8 @@
                 if (loading) loading.innerText = "Live Sync offline. Use Backup (.json) to share data!";
             }
         }
+        if ('serviceWorker' in navigator) { navigator.serviceWorker.register('./sw.js'); }
+
     </script>
 </body>
 </html>
